@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceCode {
+  SERVICE_1
+  SERVICE_2
+  SERVICE_3
+}
+
+enum LeadStatus {
+  PENDING
+  ALLOCATED
+}
+
+model Service {
+  id               Int               @id @default(autoincrement())
+  code             ServiceCode       @unique
+  name             String
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  leads            Lead[]
+  leadAssignments  LeadAssignment[]
+  allocationCursor AllocationCursor?
+
+  @@index([code, active])
+}
+
+model Provider {
+  id            Int                    @id @default(autoincrement())
+  providerCode  Int                    @unique
+  name          String
+  monthlyQuota  Int                    @default(10)
+  active        Boolean                @default(true)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  assignments   LeadAssignment[]
+  monthlyUsages ProviderMonthlyUsage[]
+
+  @@index([active])
+}
+
+model Lead {
+  id          String           @id @default(cuid())
+  serviceId   Int
+  name        String
+  email       String?
+  phone       String
+  city        String
+  description String
+  status      LeadStatus       @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  service     Service          @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  assignments LeadAssignment[]
+
+  @@unique([phone, serviceId])
+  @@index([serviceId, createdAt])
+  @@index([status, createdAt])
+  @@index([city])
+  @@index([createdAt])
+}
+
+model LeadAssignment {
+  id         String   @id @default(cuid())
+  leadId     String
+  providerId Int
+  serviceId  Int
+  assignedAt DateTime @default(now())
+
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([leadId, providerId])
+  @@index([serviceId, assignedAt])
+  @@index([providerId, assignedAt])
+  @@index([leadId, assignedAt])
+}
+
+model AllocationCursor {
+  id        String   @id @default(cuid())
+  serviceId Int      @unique
+  nextIndex Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model ProviderMonthlyUsage {
+  id               String   @id @default(cuid())
+  providerId       Int
+  monthKey         String
+  assignmentsCount Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, monthKey])
+  @@index([monthKey])
+  @@index([providerId, monthKey])
+}
+
+model WebhookEvent {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique
+  eventType      String
+  payload        Json
+  status         String   @default("processed")
+  processedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
