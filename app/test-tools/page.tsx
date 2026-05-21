@@ -2,13 +2,53 @@
 
 import { useMemo, useState } from 'react';
 import { serviceLabels } from '@/lib/service-labels';
-import {
-  buildConcurrentLeadPayloads,
-  buildDuplicateLeadPayload,
-  buildStressTestPayloads,
-  buildWebhookQuotaResetPayload,
-  buildWebhookReplayPayload
-} from '@/lib/test-tools';
+
+// Client-side copies of small helper builders (avoid importing server-only utilities)
+function buildConcurrentLeadPayloads(input: any, count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    ...input,
+    email: input.email ? input.email.replace('@', `+${index}@`) : undefined,
+    phone: `${input.phone}${index}`
+  }));
+}
+
+function buildDuplicateLeadPayload(input: any) {
+  return {
+    ...input,
+    city: input.city,
+    description: input.description
+  };
+}
+
+function buildStressTestPayloads(input: any, count = 10) {
+  return buildConcurrentLeadPayloads(input, count).map((payload, index) => ({
+    ...payload,
+    city: `${payload.city} ${index + 1}`
+  }));
+}
+
+function buildWebhookReplayPayload(leadId: string, idempotencyKey: string, source = 'test-tools') {
+  return {
+    idempotencyKey,
+    eventType: 'lead.allocated',
+    payload: {
+      source,
+      leadId
+    }
+  };
+}
+
+function buildWebhookQuotaResetPayload(providerCodes: number[], monthKey: string, idempotencyKey: string) {
+  return {
+    idempotencyKey,
+    eventType: 'provider.quota.reset',
+    payload: {
+      providerCodes,
+      monthKey,
+      source: 'test-tools'
+    }
+  };
+}
 
 type DemoState = {
   status: 'idle' | 'running' | 'success' | 'error';
