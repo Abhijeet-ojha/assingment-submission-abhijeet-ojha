@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "prisma:generate": "prisma generate",
+    "postinstall": "prisma generate",
     "prisma:seed": "prisma db seed"
   },
   "prisma": {
