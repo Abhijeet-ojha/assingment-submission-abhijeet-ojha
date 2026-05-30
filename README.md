@@ -1,4 +1,4 @@
-#This project is an assignmet and not meant for any use
+#This project is an assignmet and not meant for any use.
 
 # Mini Lead Distribution System
 
