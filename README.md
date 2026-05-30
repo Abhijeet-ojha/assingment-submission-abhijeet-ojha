@@ -1,3 +1,5 @@
+#This project is an assignmet and not meant for any use
+
 # Mini Lead Distribution System
 
 Production-ready mini lead distribution system demonstrating deterministic, concurrency-safe lead allocation.
